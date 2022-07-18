@@ -149,40 +149,19 @@ main = do
     pPrint (c, c1)
     pure ()
 
-deduceLoc :: IPv4 -> IO ()
-deduceLoc (IPv4 w) = do
-  let Right c = parseConnectInfo $ "redis://user@localhost:6379/0"
-  con <- connect c
-  bss <- runRedis con $ do
-    Right bss <- zrevrangebyscoreLimit "geoip_b" (fromIntegral w) (1.0) 0 10
-    -- liftIO $ print geoip_id
+-- deduceLoc :: IPv4 -> IO ()
+-- deduceLoc (IPv4 w) = do
+--   let Right c = parseConnectInfo $ "redis://user@localhost:6379/0"
+--   con <- connect c
 
-    pure bss
-  -- pPrint bss
+--   a <- runRedis con $ ipv4Lookup "geoip_b" (fromOctets 109 252 75 100)
+--   pPrint a
 
-  a <-
-    runConduit $
-      yieldMany (bss <&> (<> "\n"))
-        .| intoCSV @ByteString @Record redisTSV
-        .| awaitForever
-          ( \(e :: Record) -> do
-              case runParser (parseRecord @WithIPBorders e) of
-                Left s -> liftIO $ putStrLn s
-                Right wib -> yield wib
-          )
-        .| sinkList
-  pPrint a
-  -- .| awaitForever
-  -- .| sinkFile ""
-  -- .| sink
-  pure ()
+--   pure ()
 
 -- pPrint $ decode @GeoIPLocation v
 
 -- pure $ decode v
 
 -- ipvRange
-
-getLowerBorder :: IPv4Range -> Word32
-getLowerBorder = getIPv4 . lowerInclusive
 

@@ -20,7 +20,7 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/Reykudo/geoip-redis#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+- base >= 4.9 && < 5
 - conduit
 - csv-conduit
 - hedis
@@ -36,8 +36,6 @@ dependencies:
 - store
 - pretty-simple 
 - async
-- unordered-containers
-- linear-base
 - containers
 
 library:
