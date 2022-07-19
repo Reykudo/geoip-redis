@@ -33,37 +33,3 @@ dependencies:
 
 library:
   source-dirs: src
-
-executables:
-  geoip-redis-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -O2
-    dependencies:
-    - geoip-redis
-    - ip
-    - optparse-applicative
-    - pretty-simple 
-    - containers
-    - unordered-containers
-    - ordered-containers
-    - conduit
-    - csv-conduit
-    - async
-    - store-streaming
-
-
-tests:
-  geoip-redis-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - geoip-redis

@@ -1,0 +1,45 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           geoip-redis
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/Reykudo/geoip-redis#readme>
+homepage:       https://github.com/Reykudo/geoip-redis#readme
+bug-reports:    https://github.com/Reykudo/geoip-redis/issues
+author:         Reykudo
+maintainer:     example@example.com
+copyright:      2022 Reykudo
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/Reykudo/geoip-redis
+
+library
+  exposed-modules:
+      Data.GeoIP.Block
+      Data.GeoIP.Location
+  other-modules:
+      Paths_geoip_redis
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.9 && <5
+    , bytestring
+    , data-default
+    , either
+    , hedis
+    , mtl
+    , store
+    , text
+    , transformers
+    , vector
+  default-language: Haskell2010
