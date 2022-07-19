@@ -179,6 +179,7 @@ main = do
                         , subdivision_2_iso_code
                         , subdivision_2_name
                         , city_name
+                        , postal_code
                         , metro_code
                         , time_zone
                         , is_in_european_union

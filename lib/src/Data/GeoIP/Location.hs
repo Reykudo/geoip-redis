@@ -46,8 +46,3 @@ type GeoIPLocation = GeoIPLocation1 Text
 
 deriving instance Store (GeoIPLocation1 ByteString)
 
--- aaa :: IO (Maybe GeoIPFull)
--- aaa = do
---   let Right c = parseConnectInfo $ "redis://user@localhost:6379/0"
---   con <- connect c
---   runRedis con $ lookupGeoByIP "geoip_ipv4" 1845250916

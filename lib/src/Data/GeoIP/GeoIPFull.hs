@@ -5,6 +5,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Data.GeoIP.GeoIPFull where
 
@@ -36,6 +37,7 @@ data GeoIPFull1 str = GeoIPFull
   , subdivision_2_iso_code :: !(Maybe str)
   , subdivision_2_name :: !(Maybe str)
   , city_name :: !(Maybe str)
+  , postal_code :: !(Maybe str)
   , metro_code :: !(Maybe str)
   , time_zone :: !(Maybe str)
   , is_in_european_union :: !Bool
@@ -51,3 +53,9 @@ lookupGeoByIP :: ByteString -> Word64 -> Redis (Maybe GeoIPFull)
 lookupGeoByIP db_key ip = do
   res <- zrevrangebyscoreLimit @_ @(Either Reply) db_key (fromIntegral ip) 0.0 0 1
   pure $ rightToMaybe res >>= listToMaybe >>= rightToMaybe . fmap (fmap (Text.decodeUtf8)) . Store.decode @(GeoIPFull1 ByteString)
+
+-- aaa :: IO ()
+-- aaa = do
+--   let Right c = parseConnectInfo $ "redis://user@localhost:6379/0"
+--   con <- connect c
+--   runRedis con (lookupGeoByIP "geoip_ipv4" 1441407949) >>= pPrint 

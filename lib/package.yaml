@@ -30,6 +30,5 @@ dependencies:
 - vector
 - store
 - either
-
 library:
   source-dirs: src

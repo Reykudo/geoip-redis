@@ -39,6 +39,7 @@ library
     , either
     , hedis
     , mtl
+    , pretty-simple
     , store
     , text
     , transformers
