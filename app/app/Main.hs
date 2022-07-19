@@ -52,6 +52,7 @@ import Options.Applicative
 import Text.Pretty.Simple
 import Unsafe.Coerce
 import Prelude hiding (mapM, mapM_, take)
+import qualified Data.Text.Encoding as Text
 
 data Options = Options
   { redis :: ConnectInfo
@@ -125,23 +126,24 @@ main = do
         else do
           sourceFile blocksFile
             .| intoCSV @_ @(NamedOrdered (GeoIPBlock IPv4Range)) def
-            .| awaitForever
+            .| mapM
               ( \(getNamedOrdered -> GeoIPBlock{geoname_id, network}) -> do
                   let Just location = Map.lookup geoname_id lMap
                       lowerBorder = fromIntegral . getIPv4 . lowerInclusive $ network
                       upperBorder = fromIntegral . getIPv4 . upperInclusive $ network
-                  yield WithIPBorders{location, lowerBorder, upperBorder}
+                  pure WithIPBorders{location, lowerBorder, upperBorder}
               )
             .| chunksOf 1000
             -- .| conduitEncode
-            .| awaitForever
+            .| mapM_
               ( \(wibs) -> do
-                  let records1 = [(fromIntegral lowerBorder :: Double, Store.encode w) | w@WithIPBorders{lowerBorder} <- wibs]
+                  let records1 = [(fromIntegral lowerBorder :: Double, Store.encode $ fmap (Text.encodeUtf8) w) | w@WithIPBorders{lowerBorder} <- wibs]
                   liftIO . runRedis redisConn $
                     zaddOpts
                       blockDb
                       (records1)
                       defaultZaddOpts{zaddCondition = Just Nx}
+                  pure ()
               )
     Right c <- runRedis redisConn $ zcard blockDb
     c1 <- readIORef count

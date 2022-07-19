@@ -2,11 +2,6 @@ packages:
   ./lib
   ./app
 
--- source-repository-package
---   type: git
---   location: git@github.com:andrewthad/haskell-ip.git
---   tag: 9df3eb092fb72d6d8d028f0edc6eb7eec0f8e5d9
-
 
 source-repository-package
   type: git
