@@ -1,31 +1,31 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Data.GeoIP.Location where
+module Data.GeoIP.GeoIPFull where
 
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import Data.Either.Combinators (rightToMaybe)
-import Data.Int (Int64)
-import Data.Maybe (listToMaybe)
+import Data.ByteString
+import Data.Either.Combinators
+import Data.GeoIP.Location
+import Data.Maybe
 import Data.Store
 import qualified Data.Store as Store
 import Data.Text (Text)
 import qualified Data.Text.Encoding as Text
 import Data.Word
 import Database.Redis
-import GHC.Generics (Generic)
+import GHC.Generics
 
-data GeoIPLocation1 str = GeoIPLocation
-  { geoname_id :: !Int64
+data GeoIPFull1 str = GeoIPFull
+  { lowerBorder :: Word64
+  , upperBorder :: Word64
+  , latitude :: !Double
+  , longitude :: !Double
+  , accuracy_radius :: !Int
   , locale_code :: !(Maybe str)
   , continent_code :: !(Maybe str)
   , continent_name :: !(Maybe str)
@@ -42,12 +42,12 @@ data GeoIPLocation1 str = GeoIPLocation
   }
   deriving (Generic, Show, Eq, Functor)
 
-type GeoIPLocation = GeoIPLocation1 Text
+deriving instance Store (GeoIPFull1 ByteString)
 
-deriving instance Store (GeoIPLocation1 ByteString)
+type GeoIPFull = GeoIPFull1 Text
 
--- aaa :: IO (Maybe GeoIPFull)
--- aaa = do
---   let Right c = parseConnectInfo $ "redis://user@localhost:6379/0"
---   con <- connect c
---   runRedis con $ lookupGeoByIP "geoip_ipv4" 1845250916
+-- type
+lookupGeoByIP :: ByteString -> Word64 -> Redis (Maybe GeoIPFull)
+lookupGeoByIP db_key ip = do
+  res <- zrevrangebyscoreLimit @_ @(Either Reply) db_key (fromIntegral ip) 0.0 0 1
+  pure $ rightToMaybe res >>= listToMaybe >>= rightToMaybe . fmap (fmap (Text.decodeUtf8)) . Store.decode @(GeoIPFull1 ByteString)

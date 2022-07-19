@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Data.GeoIP.Block
+      Data.GeoIP.GeoIPFull
       Data.GeoIP.Location
   other-modules:
       Paths_geoip_redis

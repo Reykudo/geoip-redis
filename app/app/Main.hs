@@ -1,6 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Strict #-}
 {-# LANGUAGE TypeApplications #-}
@@ -29,6 +30,7 @@ import Data.Foldable (Foldable (foldl'), for_, traverse_)
 import Data.Function
 import Data.Functor
 import Data.GeoIP.Block
+import Data.GeoIP.GeoIPFull
 import Data.GeoIP.Instances (redisTSV)
 import Data.GeoIP.Location
 import qualified Data.HashMap.Strict as HM
@@ -40,6 +42,7 @@ import Data.Store (PeekException, decode, encode)
 import qualified Data.Store as Store
 import Data.Store.Streaming
 import Data.Text (Text)
+import qualified Data.Text.Encoding as Text
 import Data.Traversable (for)
 import Data.Vector (Vector)
 import qualified Data.Vector as V
@@ -52,7 +55,6 @@ import Options.Applicative
 import Text.Pretty.Simple
 import Unsafe.Coerce
 import Prelude hiding (mapM, mapM_, take)
-import qualified Data.Text.Encoding as Text
 
 data Options = Options
   { redis :: ConnectInfo
@@ -127,17 +129,66 @@ main = do
           sourceFile blocksFile
             .| intoCSV @_ @(NamedOrdered (GeoIPBlock IPv4Range)) def
             .| mapM
-              ( \(getNamedOrdered -> GeoIPBlock{geoname_id, network}) -> do
-                  let Just location = Map.lookup geoname_id lMap
-                      lowerBorder = fromIntegral . getIPv4 . lowerInclusive $ network
-                      upperBorder = fromIntegral . getIPv4 . upperInclusive $ network
-                  pure WithIPBorders{location, lowerBorder, upperBorder}
+              ( \( getNamedOrdered ->
+                    GeoIPBlock
+                      { network
+                      , geoname_id
+                      , registered_country_geoname_id
+                      , represented_country_geoname_id
+                      , is_anonymous_proxy
+                      , is_satellite_provider
+                      , postal_code
+                      , latitude
+                      , longitude
+                      , accuracy_radius
+                      }
+                  ) -> do
+                    let Just
+                          ( GeoIPLocation
+                              { locale_code
+                              , continent_code
+                              , continent_name
+                              , country_iso_code
+                              , country_name
+                              , subdivision_1_iso_code
+                              , subdivision_1_name
+                              , subdivision_2_iso_code
+                              , subdivision_2_name
+                              , city_name
+                              , metro_code
+                              , time_zone
+                              , is_in_european_union
+                              }
+                            ) = Map.lookup geoname_id lMap
+                        lowerBorder = fromIntegral . getIPv4 . lowerInclusive $ network
+                        upperBorder = fromIntegral . getIPv4 . upperInclusive $ network
+                    pure
+                      GeoIPFull
+                        { lowerBorder
+                        , upperBorder
+                        , latitude
+                        , longitude
+                        , accuracy_radius
+                        , locale_code
+                        , continent_code
+                        , continent_name
+                        , country_iso_code
+                        , country_name
+                        , subdivision_1_iso_code
+                        , subdivision_1_name
+                        , subdivision_2_iso_code
+                        , subdivision_2_name
+                        , city_name
+                        , metro_code
+                        , time_zone
+                        , is_in_european_union
+                        }
               )
             .| chunksOf 1000
             -- .| conduitEncode
             .| mapM_
               ( \(wibs) -> do
-                  let records1 = [(fromIntegral lowerBorder :: Double, Store.encode $ fmap (Text.encodeUtf8) w) | w@WithIPBorders{lowerBorder} <- wibs]
+                  let records1 = [(fromIntegral lowerBorder :: Double, Store.encode $ fmap (Text.encodeUtf8) w) | w@GeoIPFull{lowerBorder} <- wibs]
                   liftIO . runRedis redisConn $
                     zaddOpts
                       blockDb

@@ -19,6 +19,8 @@ import Net.IPv6
 import qualified Net.IPv6 as IPv6
 import Data.GeoIP.Block
 import Data.GeoIP.Location
+    ( GeoIPLocation,
+      GeoIPLocation1(..) )
 import qualified Data.Vector as V
 import Data.CSV.Conduit
 import Data.ByteString hiding (empty)
@@ -178,17 +180,17 @@ instance ToNamedRecordOrdered GeoIPLocation where
         |> ("is_in_european_union", toField is_in_european_union)
 
 deriving instance FromRecord GeoIPLocation
-instance FromRecord WithIPBorders where
-  parseRecord v = do
-    location <- parseRecord $ V.drop 2 v
-    lowerBorder <- parseField $ v V.! 0
-    upperBorder <- parseField $ v V.! 1
-    pure $
-      WithIPBorders
-        { location
-        , lowerBorder
-        , upperBorder
-        }
+-- instance FromRecord WithIPBorders where
+--   parseRecord v = do
+--     location <- parseRecord $ V.drop 2 v
+--     lowerBorder <- parseField $ v V.! 0
+--     upperBorder <- parseField $ v V.! 1
+--     pure $
+--       WithIPBorders
+--         { location
+--         , lowerBorder
+--         , upperBorder
+--         }
 
 
 
@@ -199,28 +201,16 @@ redisTSV =
     , csvQuoteChar = Nothing
     }
 
-instance ToNamedRecordOrdered WithIPBorders where
-  toNamedRecordOrdered WithIPBorders{lowerBorder, upperBorder, location} =
-    ("lowerBorder", toField lowerBorder)
-      <| ("upperBorder", toField upperBorder)
-      <| toNamedRecordOrdered location
+-- instance ToNamedRecordOrdered WithIPBorders where
+--   toNamedRecordOrdered WithIPBorders{lowerBorder, upperBorder, location} =
+--     ("lowerBorder", toField lowerBorder)
+--       <| ("upperBorder", toField upperBorder)
+--       <| toNamedRecordOrdered location
 
-instance FromNamedRecordOrdered WithIPBorders where
-  parseNamedRecordOrdered omap =
-    WithIPBorders
-      <$> lookupOrdered omap "lowerBorder"
-      <*> lookupOrdered omap "upperBorder"
-      <*> parseNamedRecordOrdered omap
+-- instance FromNamedRecordOrdered WithIPBorders where
+--   parseNamedRecordOrdered omap =
+--     WithIPBorders
+--       <$> lookupOrdered omap "lowerBorder"
+--       <*> lookupOrdered omap "upperBorder"
+--       <*> parseNamedRecordOrdered omap
 
-ipv4Lookup :: ByteString -> Word64 -> Redis (Either String WithIPBorders)
-ipv4Lookup bd_name w = do
-  res <- zrevrangebyscoreLimit bd_name (fromIntegral w) 1.0 0 1
-  pure $ do
-    bss <- first show res
-    case bss of
-      [] -> Left "No data"
-      [a] -> do
-            row <- parseRow redisTSV a >>= maybe (Left "Can't parse row") Right
-            runParser (parseRecord @WithIPBorders (V.fromList row))
-      _ -> Left "multiple answer"
-    
