@@ -21,22 +21,15 @@ description:         Please see the README on GitHub at <https://github.com/Reyk
 
 dependencies:
 - base >= 4.9 && < 5
-- conduit
-- csv-conduit
 - hedis
 - mtl
 - transformers
 - bytestring
 - text
-- ip
 - data-default
 - vector
-- ordered-containers
-- optparse-applicative
 - store
-- pretty-simple 
-- async
-- containers
+- either
 
 library:
   source-dirs: src
@@ -52,6 +45,17 @@ executables:
     - -O2
     dependencies:
     - geoip-redis
+    - ip
+    - optparse-applicative
+    - pretty-simple 
+    - containers
+    - unordered-containers
+    - ordered-containers
+    - conduit
+    - csv-conduit
+    - async
+    - store-streaming
+
 
 tests:
   geoip-redis-test:

@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Main  where
+module Main where
 
 import Conduit hiding (connect)
 import Control.Exception
@@ -29,6 +29,7 @@ import Data.Foldable (Foldable (foldl'), for_, traverse_)
 import Data.Function
 import Data.Functor
 import Data.GeoIP.Block
+import Data.GeoIP.Instances (redisTSV)
 import Data.GeoIP.Location
 import qualified Data.HashMap.Strict as HM
 import Data.IORef
@@ -36,6 +37,8 @@ import Data.Int
 import qualified Data.Map as Map
 import Data.Maybe hiding (mapMaybe)
 import Data.Store (PeekException, decode, encode)
+import qualified Data.Store as Store
+import Data.Store.Streaming
 import Data.Text (Text)
 import Data.Traversable (for)
 import Data.Vector (Vector)
@@ -49,7 +52,6 @@ import Options.Applicative
 import Text.Pretty.Simple
 import Unsafe.Coerce
 import Prelude hiding (mapM, mapM_, take)
-import Data.GeoIP.Instances ()
 
 data Options = Options
   { redis :: ConnectInfo
@@ -80,7 +82,9 @@ options =
       ( long "location-file"
           <> short 'l'
       )
-    <*> flag False True
+    <*> flag
+      False
+      True
       ( long "ipv6"
           <> short '6'
           -- <> opt
@@ -116,34 +120,29 @@ main = do
           )
       curLocs <- liftIO $ readIORef locationMap
       let lMap = Map.fromDistinctDescList curLocs
-      if ipv6 
-        then do pure () 
+      if ipv6
+        then do pure ()
         else do
-              sourceFile blocksFile
-                .| intoCSV @_ @(NamedOrdered (GeoIPBlock IPv4Range)) def
-                .| chunksOf 10000
-                .| awaitForever
-                  ( \(fmap getNamedOrdered -> records) -> do
-                      let handle GeoIPBlock{network, geoname_id} =
-                            ( fromIntegral @_ @Double . getIPv4 . lowerInclusive $ network
-                            , BS8.pack . show $ geoname_id
-                            )
-
-                      liftIO $ do
-                        modifyIORef count (+ length records)
-                        runRedis redisConn $ do
-                          let records1 = do
-                                GeoIPBlock{geoname_id, network} <- records
-                                let Just location = Map.lookup geoname_id lMap
-                                    lowerBorder = fromIntegral $ getIPv4 . lowerInclusive $ network
-                                    upperBorder = fromIntegral $ getIPv4 . upperInclusive $ network
-                                pure (lowerBorder, WithIPBorders{location, lowerBorder, upperBorder})
-
-                          zaddOpts
-                            blockDb
-                            (bimap fromIntegral (rowToStr redisTSV . NamedOrdered) <$> records1)
-                            defaultZaddOpts{zaddCondition = Just Nx}
-                  )
+          sourceFile blocksFile
+            .| intoCSV @_ @(NamedOrdered (GeoIPBlock IPv4Range)) def
+            .| awaitForever
+              ( \(getNamedOrdered -> GeoIPBlock{geoname_id, network}) -> do
+                  let Just location = Map.lookup geoname_id lMap
+                      lowerBorder = fromIntegral . getIPv4 . lowerInclusive $ network
+                      upperBorder = fromIntegral . getIPv4 . upperInclusive $ network
+                  yield WithIPBorders{location, lowerBorder, upperBorder}
+              )
+            .| chunksOf 1000
+            -- .| conduitEncode
+            .| awaitForever
+              ( \(wibs) -> do
+                  let records1 = [(fromIntegral lowerBorder :: Double, Store.encode w) | w@WithIPBorders{lowerBorder} <- wibs]
+                  liftIO . runRedis redisConn $
+                    zaddOpts
+                      blockDb
+                      (records1)
+                      defaultZaddOpts{zaddCondition = Just Nx}
+              )
     Right c <- runRedis redisConn $ zcard blockDb
     c1 <- readIORef count
     pPrint (c, c1)
@@ -164,4 +163,3 @@ main = do
 -- pure $ decode v
 
 -- ipvRange
-

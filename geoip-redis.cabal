@@ -26,26 +26,18 @@ source-repository head
 library
   exposed-modules:
       Data.GeoIP.Block
-      Data.GeoIP.Instances
       Data.GeoIP.Location
   other-modules:
       Paths_geoip_redis
   hs-source-dirs:
       src
   build-depends:
-      async
-    , base >=4.9 && <5
+      base >=4.9 && <5
     , bytestring
-    , conduit
-    , containers
-    , csv-conduit
     , data-default
+    , either
     , hedis
-    , ip
     , mtl
-    , optparse-applicative
-    , ordered-containers
-    , pretty-simple
     , store
     , text
     , transformers
@@ -55,6 +47,7 @@ library
 executable geoip-redis-exe
   main-is: Main.hs
   other-modules:
+      Data.GeoIP.Instances
       Paths_geoip_redis
   hs-source-dirs:
       app
@@ -67,6 +60,7 @@ executable geoip-redis-exe
     , containers
     , csv-conduit
     , data-default
+    , either
     , geoip-redis
     , hedis
     , ip
@@ -75,8 +69,10 @@ executable geoip-redis-exe
     , ordered-containers
     , pretty-simple
     , store
+    , store-streaming
     , text
     , transformers
+    , unordered-containers
     , vector
   default-language: Haskell2010
 
@@ -89,20 +85,13 @@ test-suite geoip-redis-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      async
-    , base >=4.9 && <5
+      base >=4.9 && <5
     , bytestring
-    , conduit
-    , containers
-    , csv-conduit
     , data-default
+    , either
     , geoip-redis
     , hedis
-    , ip
     , mtl
-    , optparse-applicative
-    , ordered-containers
-    , pretty-simple
     , store
     , text
     , transformers
