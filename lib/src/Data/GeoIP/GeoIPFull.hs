@@ -20,6 +20,7 @@ import qualified Data.Text.Encoding as Text
 import Data.Word
 import Database.Redis
 import GHC.Generics
+import Data.Functor
 
 data GeoIPFull1 str = GeoIPFull
   { lowerBorder :: Word64
@@ -49,13 +50,8 @@ deriving instance Store (GeoIPFull1 ByteString)
 type GeoIPFull = GeoIPFull1 Text
 
 -- type
-lookupGeoByIP :: ByteString -> Word64 -> Redis (Maybe GeoIPFull)
+lookupGeoByIP :: ByteString -> Word64 -> Redis (Either Reply (Maybe (Either PeekException GeoIPFull)))
 lookupGeoByIP db_key ip = do
   res <- zrevrangebyscoreLimit @_ @(Either Reply) db_key (fromIntegral ip) 0.0 0 1
-  pure $ rightToMaybe res >>= listToMaybe >>= rightToMaybe . fmap (fmap (Text.decodeUtf8)) . Store.decode @(GeoIPFull1 ByteString)
+  pure $ res <&> fmap (fmap (fmap Text.decodeUtf8) . Store.decode @(GeoIPFull1 ByteString))  . listToMaybe
 
--- aaa :: IO ()
--- aaa = do
---   let Right c = parseConnectInfo $ "redis://user@localhost:6379/0"
---   con <- connect c
---   runRedis con (lookupGeoByIP "geoip_ipv4" 1441407949) >>= pPrint 
