@@ -4,3 +4,6 @@ dist-newstyle
 data
 tmp
 hie.yaml
+.vscode
+app/.vscode
+lib/.vscode
