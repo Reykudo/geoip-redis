@@ -2,10 +2,9 @@
 2-part package for loading [GeoLite2 Database](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data?lang=en) to redis and working with it from your application.
 
 ## app
-Contains 
+Contains logic abot uploading existing GeoLite2 database to redis
 ## lib
-Contains types + lookup function
-
+Contains types + lookup functions
 
 ## Usage
 1. login [here](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data?lang=en)

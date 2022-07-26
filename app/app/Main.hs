@@ -58,7 +58,7 @@ import Prelude hiding (mapM, mapM_, take)
 
 data Options = Options
   { redis :: ConnectInfo
-  , blockDb :: ByteString
+  , sortedSetName :: ByteString
   , blocksFile :: FilePath
   , locationFile :: FilePath
   , ipv6 :: Bool
@@ -72,18 +72,23 @@ options =
       connInfoReadM
       ( long "redis-conn"
           <> short 'r'
+          <> help "Redis connection string like \"redis://user@localhost:6379/1\""
       )
     <*> strOption
-      ( long "db-name"
+      ( long "sorted-set"
           <> short 'd'
+          <> help "Name for sorted set, where store data"
+          <> value "geoip_ipv4"
       )
     <*> strOption
       ( long "blocks-file"
           <> short 'b'
+          <> help "Path to block data, like \"./GeoLite2-City-Blocks-IPv4.csv'\""
       )
     <*> strOption
       ( long "location-file"
           <> short 'l'
+          <> help "Path to locations data, like \"./GeoLite2-City-Locations-ru.csv\""
       )
     <*> flag
       False
@@ -99,7 +104,7 @@ main = do
     { redis
     , blocksFile
     , locationFile
-    , blockDb
+    , sortedSetName
     , ipv6
     } <-
     execParser $
@@ -192,12 +197,12 @@ main = do
                   let records1 = [(fromIntegral lowerBorder :: Double, Store.encode $ fmap (Text.encodeUtf8) w) | w@GeoIPFull{lowerBorder} <- wibs]
                   liftIO . runRedis redisConn $
                     zaddOpts
-                      blockDb
+                      sortedSetName
                       (records1)
                       defaultZaddOpts{zaddCondition = Just Nx}
                   pure ()
               )
-    Right c <- runRedis redisConn $ zcard blockDb
+    Right c <- runRedis redisConn $ zcard sortedSetName
     c1 <- readIORef count
     pPrint (c, c1)
     pure ()
